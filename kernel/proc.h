@@ -95,7 +95,7 @@ struct proc {
   int pid;                     // Process ID
 
   int cpu;   // 
-  int next;  //
+  struct proc* next;  //
   int index; // 
   struct spinlock list_lock;
 
