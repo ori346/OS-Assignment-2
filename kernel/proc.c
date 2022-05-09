@@ -24,9 +24,9 @@ struct headList{
 
 
 struct headList readyQueus[NCPU];
-struct headList zombies = {0, 0};
-struct headList sleeping = {0, 0} ; 
-struct headList unusing = {0, 0};  
+struct headList zombies = {0 , 0};
+struct headList sleeping = {0 , 0} ; 
+struct headList unusing = {0 , 0};   
 
 
 int nextpid = 1;
@@ -35,12 +35,13 @@ struct spinlock pid_lock;
 extern void forkret(void);
 static void freeproc(struct proc *p);
 
-/*void add(struct headList * list , int new_proc){
+
+void add(struct headList * list , struct proc * new_proc){
     //printf("try to add proc num: %d\n" , new_proc);
     acquire(&list->lock);
 
     //case the queue is empty
-    if(list->tail == -1){
+    if(list->tail == 0){
       list->head = new_proc;
       list->tail = new_proc;
       release(&list->lock);
@@ -50,19 +51,76 @@ static void freeproc(struct proc *p);
     acquire(&p->list_lock);
     p->next = new_proc;
     list->tail = new_proc;
-    proc[new_proc].next = -1 ; 
+    new_proc->next = 0 ; 
     release(&p->list_lock);
     release(&list->lock);
     //printf("add proc num: %d succsesfuly\n" , new_proc);
-}*/
+}
 
-void add2(struct headList * list , int new_proc_id){
-    //printf("try to add proc num: %d\n" , new_proc);
-    printf("dding %d\n" , new_proc_id);
 
-    struct proc *new_proc = &proc[new_proc_id];
+struct proc* remove(struct headList *list){
+  struct proc* offset = 0; 
+  acquire(&list->lock);
+
+  //case of empty quequ 
+  if(list->head == 0){
+    release(&list->lock);
+    return 0;
+  }
+
+  struct proc *p = list->head; 
+  acquire(&p->list_lock);
+  offset = list->head;
+  list->head = p->next; 
+
+  //case of removing the last element
+  if(p->next == 0)
+    list->tail = 0;
+  p->next = 0;
+  release(&p->list_lock);
+  release(&list->lock);
+  return offset;
+} 
+
+
+
+
+ void remove_index(struct headList *list , int ind){
+  //TODO change the implimntion to not lock all the list
+  acquire(&list->lock);
+  if(list->head == 0){
+    release(&list->lock);
+    return;
+  }
+    
+  struct proc *prev = 0;
+  struct proc *curr = list->head; 
+  while((curr->next != 0 ) || (curr->index != ind) ){
+    prev = curr; 
+    curr = curr->next;
+  }
+  if(curr->index == ind){
+    if(prev == 0){
+      list->head = curr->next; 
+    }
+    else{
+    prev->next = curr->next;
+    }
+    if(curr->index == list->tail->index){
+      list->tail = prev;
+    }
+    curr->next = 0; 
+    }
+  release(&list->lock);
+
+}
+
+/*
+void add(struct headList * list , struct proc* new_proc){
+    //printf("try to add proc num: %d\n" , new_proc); 
     acquire(&new_proc->list_lock);
     acquire(&list->lock);
+
     //case the queue is empty
     if(list->head == 0){
       //printf("bla\n");
@@ -75,7 +133,7 @@ void add2(struct headList * list , int new_proc_id){
     else{
       //printf("bla2\n");
       struct proc *p1 = list->head;
-      release(&list->lock);
+      //release(&list->lock);
       struct proc *p2;
 
       acquire(&p1->list_lock);
@@ -92,36 +150,13 @@ void add2(struct headList * list , int new_proc_id){
       p1->next = new_proc;
       release(&p1->list_lock);
       release(&new_proc->list_lock);
+      release(&list->lock);
       //printf("add proc num: %d succsesfuly\n" , new_proc);
     }
 }
 
 
-/*struct proc* remove(struct headList *list){
-  int offset = -1; 
-  acquire(&list->lock);
-
-  //case of empty quequ 
-  if(list->head == -1){
-    release(&list->lock);
-    return 0;
-  }
-
-  struct proc *p = &list->head; 
-  acquire(&p->list_lock);
-  offset = list->head;
-  list->head = p->next; 
-
-  //case of removing the last element
-  if(p->next == -1)
-    list->tail = -1;
-  p->next = -1;
-  release(&p->list_lock);
-  release(&list->lock);
-  return &proc[offset];
-}*/
-
-struct proc* remove2(struct headList * list){
+struct proc* remove(struct headList * list){
    
   struct proc* to_remove;
   acquire(&list->lock);
@@ -132,7 +167,7 @@ struct proc* remove2(struct headList * list){
   }
   
   to_remove = list->head;
-  printf("remove %d\n" , to_remove->index); 
+  //printf("remove %d\n" , to_remove->index); 
   acquire(&to_remove->list_lock);
   if(to_remove->next == 0){
     list->head = 0;
@@ -143,60 +178,33 @@ struct proc* remove2(struct headList * list){
     release(&to_remove->next->list_lock);
   }
   
-  release(&list->lock);
+  //release(&list->lock);
   
   to_remove->next = 0;
   release(&to_remove->list_lock);
+  release(&list->lock);
   return to_remove;
 }
-
-/*void remove_index(struct headList *list , int ind){
-  //TODO change the implimntion to not lock all the list
-  if(ind == list->head){
-    remove(list);
-    return;  
-  }
+*/
+void printList(struct headList* list){
   acquire(&list->lock);
-  if(list->head == -1){
-    release(&list->lock);
+  printf("the list: ");
+  if(list->head == 0){
+    printf("empty\n");
     return;
   }
-  struct proc *prev = list->head ;
-  struct proc *curr = prev->next ; 
-  while((curr->index != ind) || (curr->next == -1 )){
-    prev = curr; 
-    curr = curr->next;
+  struct proc *p = list->head;
+  while(p != 0 ){ 
+    printf("%d " , p->index); 
+    p = p->next;
   }
-  if(curr->index == ind){
-    prev->next = curr->next;
-    if(curr->index == list->tail){
-      list->tail = prev->index;
-    }
-    curr->next = -1; 
-    }
-  // if(list->head == ind){
-  //   remove(list);
-  //   release(&list->lock);
-  // }
-  // struct proc *prev = 0  , *curr = 0 ;
-  // curr = &proc[list->head];
-  // while((curr->index != ind) || (curr->index == list->tail)){
-  //   prev = curr; 
-  //   curr = &proc[curr->next];  
-  // }
-  // if(curr->index == ind){
-  //   prev->next = curr->next; 
-  // }
 
-  // if(curr->index == list->tail){
-  //   list->tail = -1;
-  // }
-  // curr->next = -1;
+  printf("\n"); 
   release(&list->lock);
-
-}*/
-
-struct proc* remove_index2(struct headList *list , int ind){
+  
+}
+/*
+struct proc* remove_index(struct headList *list , int ind){
   //TODO change the implimntion to not lock all the list
   
   struct proc* to_remove;
@@ -226,7 +234,7 @@ struct proc* remove_index2(struct headList *list , int ind){
   }
 
   struct proc *prev = list->head;
-  release(&list->lock);
+  //release(&list->lock);
   struct proc *curr = prev;
 
   acquire(&prev->list_lock);
@@ -244,26 +252,12 @@ struct proc* remove_index2(struct headList *list , int ind){
     prev = curr;
   }
   release(&curr->list_lock);
+  release(&list->lock);
   return 0;
   
 }
 
-void printList(struct headList* list){
-  acquire(&list->lock);
-  printf("the list: ");
-  if(list->head == 0){
-    printf("empty\n");
-    return;
-  }
-  struct proc *p = list->head;
-  while(p != 0 ){ 
-    printf("%d " , p->index); 
-    p = p->next;
-  }
-
-  printf("\n"); 
-  release(&list->lock); 
-}
+*/
 
 int set_cpu(int cpu_num){
   struct proc *p = myproc();
@@ -308,7 +302,7 @@ procinit(void)
   int i = 0; 
   for(int j = 0 ; j < NCPU ; j++){
     readyQueus[j].head = 0; 
-    readyQueus[j].tail = 0; 
+    readyQueus[j].tail = 0;
     initlock(&readyQueus[j].lock , "cpu");
     cpus[j].index = j ;
   }
@@ -324,11 +318,11 @@ procinit(void)
       p->index = i++;
       p->next = 0;
       p->cpu = 0; 
-      add2(&unusing , p->index);
-      
+      add(&unusing , p);
   }
-
 }
+
+
 
 // Must be called with interrupts disabled,
 // to prevent race with process being moved
@@ -383,7 +377,7 @@ allocproc(void)
 {
   struct proc *p;
   
-  p = remove2(&unusing);
+  p = remove(&unusing);
   if(p == 0)
     return 0 ;
   acquire(&p->lock);
@@ -436,6 +430,9 @@ freeproc(struct proc *p)
   p->trapframe = 0;
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
+    
+  remove_index(&zombies , p->index);
+
   p->pagetable = 0;
   p->sz = 0;
   p->pid = 0;
@@ -444,10 +441,10 @@ freeproc(struct proc *p)
   p->chan = 0;
   p->killed = 0;
   p->xstate = 0;
-  p->next = 0;
-  p->cpu = 0;
+  p->next = 0; 
   p->state = UNUSED;
-  add2(&unusing , p->index);
+  add(&unusing , p); 
+  
 }
 
 // Create a user page table for a given process,
@@ -527,7 +524,7 @@ userinit(void)
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
-  add2(&readyQueus[p->cpu] , p->index );
+  add(&readyQueus[0] , p );
   release(&p->lock);
 }
 
@@ -599,7 +596,7 @@ fork(void)
 
   acquire(&np->lock);
   np->state = RUNNABLE;
-  add2(&readyQueus[np->cpu], np->index);
+  add(&readyQueus[np->cpu], np);
   release(&np->lock);
 
   return pid;
@@ -657,7 +654,7 @@ exit(int status)
 
   p->xstate = status;
   p->state = ZOMBIE;
-  add2(&zombies , p->index); 
+  add(&zombies , p); 
   release(&wait_lock);
 
   // Jump into the scheduler, never to return.
@@ -733,7 +730,7 @@ scheduler(void)
     intr_on();
     //printList(&readyQueus[c->index]);
     do{
-    p = remove2(&readyQueus[c->index]);
+    p = remove(&readyQueus[c->index]);
     }while(p == 0);
 
     acquire(&p->lock);
@@ -801,7 +798,7 @@ yield(void)
   struct proc *p = myproc();
   acquire(&p->lock);
   p->state = RUNNABLE;
-  add2(&readyQueus[p->cpu] , p->index);
+  add(&readyQueus[p->cpu] , p);
   sched();
   release(&p->lock);
 }
@@ -840,27 +837,24 @@ sleep(void *chan, struct spinlock *lk)
   // guaranteed that we won't miss any wakeup
   // (wakeup locks p->lock),
   // so it's okay to release lk.
-  printf("B\n");
+
   acquire(&p->lock);  //DOC: sleeplock1
   release(lk);
-printf("E\n");
+
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
-printf("F\n");
-  add2(&sleeping , p->index);
+
+  add(&sleeping , p);
   //printList(&sleeping);
-  printf("C\n");
   sched();
-  printf("D\n");
+
   // Tidy up.
   p->chan = 0;
 
   // Reacquire original lock.
   release(&p->lock);
-  printf("A\n");
   acquire(lk);
-  
 }
 
 // Wake up all processes sleeping on chan.
@@ -869,17 +863,19 @@ void
 wakeup(void *chan)
 {
   struct proc *p;
-
-  for(p = proc; p < &proc[NPROC]; p++) {
+  //printList(&sleeping);
+  for(p = sleeping.head; p != 0; p = p->next) {
     if(p != myproc()){
       acquire(&p->lock);
       if(p->state == SLEEPING && p->chan == chan) {
+        remove_index(&sleeping , p->index);
         p->state = RUNNABLE;
-        add2(&readyQueus[p->cpu] , p->index);
+        add(&readyQueus[p->cpu] , p);     
       }
       release(&p->lock);
     }
   }
+  //printList(&sleeping);
 }
 
 // Kill the process with the given pid.
@@ -897,7 +893,7 @@ kill(int pid)
       if(p->state == SLEEPING){
         // Wake process from sleep().
         p->state = RUNNABLE;
-        add2(&readyQueus[p->cpu] , p->index); 
+        add(&readyQueus[p->cpu] , p); 
       }
       release(&p->lock);
       return 0;
