@@ -5307,24 +5307,25 @@ sleep(void *chan, struct spinlock *lk)
   acquire(&p->lock);  //DOC: sleeplock1
     80002682:	ffffe097          	auipc	ra,0xffffe
     80002686:	562080e7          	jalr	1378(ra) # 80000be4 <acquire>
+  add(&sleeping , p);
+    8000268a:	85a6                	mv	a1,s1
+    8000268c:	0000f517          	auipc	a0,0xf
+    80002690:	1bc50513          	addi	a0,a0,444 # 80011848 <sleeping>
+    80002694:	fffff097          	auipc	ra,0xfffff
+    80002698:	1aa080e7          	jalr	426(ra) # 8000183e <add>
   release(lk);
-    8000268a:	854a                	mv	a0,s2
-    8000268c:	ffffe097          	auipc	ra,0xffffe
-    80002690:	60c080e7          	jalr	1548(ra) # 80000c98 <release>
+    8000269c:	854a                	mv	a0,s2
+    8000269e:	ffffe097          	auipc	ra,0xffffe
+    800026a2:	5fa080e7          	jalr	1530(ra) # 80000c98 <release>
 
   // Go to sleep.
   p->chan = chan;
-    80002694:	0334b023          	sd	s3,32(s1)
+    800026a6:	0334b023          	sd	s3,32(s1)
   p->state = SLEEPING;
-    80002698:	4789                	li	a5,2
-    8000269a:	cc9c                	sw	a5,24(s1)
+    800026aa:	4789                	li	a5,2
+    800026ac:	cc9c                	sw	a5,24(s1)
 
-  add(&sleeping , p);
-    8000269c:	85a6                	mv	a1,s1
-    8000269e:	0000f517          	auipc	a0,0xf
-    800026a2:	1aa50513          	addi	a0,a0,426 # 80011848 <sleeping>
-    800026a6:	fffff097          	auipc	ra,0xfffff
-    800026aa:	198080e7          	jalr	408(ra) # 8000183e <add>
+  
   //printList(&sleeping);
   sched();
     800026ae:	00000097          	auipc	ra,0x0

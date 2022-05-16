@@ -941,13 +941,14 @@ sleep(void *chan, struct spinlock *lk)
   // so it's okay to release lk.
 
   acquire(&p->lock);  //DOC: sleeplock1
+  add(&sleeping , p);
   release(lk);
 
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
 
-  add(&sleeping , p);
+  
   //printList(&sleeping);
   sched();
 
